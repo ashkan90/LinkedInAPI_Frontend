@@ -1,32 +1,57 @@
 <template>
-  <div id="app">
-    <div id="nav">
-      <router-link to="/">Home</router-link> |
-      <router-link to="/about">About</router-link>
-    </div>
-    <router-view/>
-  </div>
+  <router-view></router-view>
 </template>
 
-<style>
-#app {
-  font-family: 'Avenir', Helvetica, Arial, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  text-align: center;
-  color: #2c3e50;
-}
+<script>
+import { mapState } from 'vuex';
 
-#nav {
-  padding: 30px;
-}
+export default {
+  name: 'App',
 
-#nav a {
-  font-weight: bold;
-  color: #2c3e50;
-}
+  data: () => ({
+    programState: '',
+  }),
 
-#nav a.router-link-exact-active {
-  color: #42b983;
-}
-</style>
+  computed: {
+    ...mapState(['status']),
+  },
+
+  created() {
+    window.addEventListener('storage', this.handy, false);
+  },
+
+  beforeDestroy() {
+    window.removeEventListener('storage', this.handy);
+  },
+
+  methods: {
+    handy(event) {
+      if (event.key === 'vuex') {
+        const j = JSON.parse(event.newValue);
+        if (j.status === 'ok') {
+          setTimeout(() => {
+            window.location.reload();
+          }, 2000);
+        }
+      }
+    },
+  },
+
+  beforeMount() {
+    if (this.$store.state.status === 'ok' && this.$route.name !== 'app') {
+      this.$router.push({ name: 'app' });
+    }
+
+    this.axios.interceptors.response.use(res => (res),
+      (err) => {
+        if (err.response.status === 401) {
+          this.$store.dispatch('callbackStatus', '')
+            .then(() => {
+              this.$router.push({ name: 'authorize' })
+                .then(() => {});
+            });
+        }
+      });
+  },
+};
+</script>
